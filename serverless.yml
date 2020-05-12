@@ -1,0 +1,57 @@
+service: nest-serverless
+
+parameters:
+  region: ap-southeast-2
+  path: &path /
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${env:STAGE, 'staging'}
+  region: ap-southeast-2
+  versionFunctions: false
+  logRetentionInDays: 3
+  stackTags:
+    SERVICE: ${self:service}
+  # deploymentBucket: "trm-deployments"
+
+  environment:
+    STAGE: ${self:provider.stage}
+    REGION: ${self:provider.region}
+    NODE_ENV: ${env:NODE_ENV}
+
+plugins:
+  - serverless-plugin-typescript
+  - serverless-offline
+
+package:
+  individually: true
+  exclude:
+    - .git/**
+    - src/**
+    - test/**
+    - e2e/**
+    - nodemon.json
+    - README.md
+
+functions:
+  index:
+    handler: src/index.handler
+    name: ${self:service}-nestjs-${env:STAGE}
+    memorySize: 256
+    timeout: 30
+    # provisionedConcurrency: 5
+    events:
+    - http:
+        cors: true
+        path: /
+        method: ANY
+    - http:
+        cors: true
+        path: {proxy+}
+        method: ANY
+    - http:
+        path: /
+        method: OPTIONS
+        cors: true
+        contentHandling: CONVERT_TO_TEXT
